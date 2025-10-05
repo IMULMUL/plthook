@@ -30,13 +30,14 @@ jobs:
       run:
         working-directory: test
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install packages
       run: |
-        sudo apt install -y gcc-multilib libc6-dbg valgrind
+        sudo apt update
+        sudo apt install -y gcc-multilib libc6-dbg valgrind      
         sudo dpkg --add-architecture i386
         sudo apt update
-        sudo apt install -y libc6-dbg:i386
+        sudo apt install -y libc6-dbg:i386 libgcc-s1:i386
     - name: x86_64 without optimization
       run: |
         make relro_pie_tests
@@ -72,17 +73,18 @@ jobs:
         ./uclibc-test.sh i686
 
   tests_on_qemu:
-    name: Tests on Qemu (arm, armhf, arm64, ppc and ppc64le)
+    name: Tests on Qemu (arm, armhf, arm64, ppc, ppc64le and riscv64)
     if: github.event.inputs.tests_on_qemu == 'true' || github.event.inputs.tests_on_qemu == ''
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: test
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install packages
       run: |
-        sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross
+        sudo apt update
+        sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross
     - name: arm-linux-gnueabi without optimization
       run: |
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabi
@@ -98,6 +100,9 @@ jobs:
     - name: powerpc64le-linux-gnu without optimization
       run: |
         make relro_pie_tests TARGET_PLATFORM=powerpc64le-linux-gnu QEMU_ARCH=ppc64le
+    - name: riscv64-linux-gnu without optimization
+      run: |
+        make relro_pie_tests TARGET_PLATFORM=riscv64-linux-gnu QEMU_ARCH=riscv64
     - name: set OPT_CLFAGS
       run: |
         echo OPT_CFLAGS=-O3 >> $GITHUB_ENV
@@ -116,23 +121,45 @@ jobs:
     - name: powerpc64le-linux-gnu with optimization
       run: |
         make relro_pie_tests TARGET_PLATFORM=powerpc64le-linux-gnu QEMU_ARCH=ppc64le
+    - name: riscv64-linux-gnu with optimization
+      run: |
+        make relro_pie_tests TARGET_PLATFORM=riscv64-linux-gnu QEMU_ARCH=riscv64
 
   tests_on_macos:
-    name: Tests on macOS (x86_64)
+    name: Tests on macOS
     if: github.event.inputs.tests_on_macos == 'true' || github.event.inputs.tests_on_macos == ''
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [macos-13, macos-14, macos-15]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: test
     steps:
-    - uses: actions/checkout@v2
-    - name: x86_64 without optimization
+    - uses: actions/checkout@v4
+    - name: make
+      run: |
+        make clean libtest.so testprog
+    - name: otool -l testprog
+      run: |
+        otool -l testprog
+    - name: otool -l libtest.so
+      run: |
+        otool -l libtest.so
+    - name: dyldinfo
+      run: |
+        xcrun dyldinfo 2>&1 | tee dyldinfo-help.txt
+        for arg in $(awk '/^\t-/ {print $1}' dyldinfo-help.txt); do echo "======== $arg ========"; xcrun dyldinfo $arg libtest.so; done
+    - name: dyld_info
+      run: |
+        for arg in -segments -dependents -inits -exports -imports -objc -fixups -fixup_chains -fixup_chain_details -symbolic_fixups; do echo "======== $arg ========"; xcrun dyld_info $arg libtest.so; done; true
+    - name: tests without optimization
       run: |
         make run_tests
     - name: set OPT_CLFAGS
       run: |
         echo OPT_CFLAGS=-O3 >> $GITHUB_ENV
-    - name: x86_64 with optimization
+    - name: tests with optimization
       run: |
         make run_tests
 
@@ -145,7 +172,8 @@ jobs:
         shell: cmd
         working-directory: test
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+    - uses: ilammy/msvc-dev-cmd@v1
     - name: x64 without optimization
       run: |
         run-test.bat amd64  "-LD -MD"     "-MD"

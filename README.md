@@ -1,7 +1,10 @@
 PLTHook
 =======
 
-[![tests](https://github.com/kubo/plthook/actions/workflows/run-tests.yml/badge.svg)](https://github.com/kubo/plthook/actions/workflows/run-tests.yml)
+> [!CAUTION]
+> Due to a shift in my personal interests, this repository is no longer maintained and has been archived.
+> If you're looking for a successor project, please check [the network graph](https://github.com/kubo/plthook/network) to see if any forks have continued development.
+> At the time of archiving, [metacall's fork](https://github.com/metacall/plthook) seems to be the best.
 
 What is plthook.
 ----------------
@@ -71,6 +74,28 @@ entry is resolved.
 Changes
 -------
 
+**2024-09-02:** Fix issues on macOS ([#48])
+
+**2024-08-05:** Add `plthook_enum_with_prot()` to enumerate entries with memory protection information. (plthook_elf.c and plthook_osx.c)
+
+**2023-06-01:** Add riscv support. (plthook_elf.c) ([#45])
+
+**2022-09-19:** Drop macOS 32-bit application support. Drop support for macOS 10.14 Mojave or before.
+
+**2022-08-12:** Support LC_DYLD_CHAINED_FIXUPS on macOS intel
+
+**2020-03-30:** Check _start also in plthook_open_by_handle() (plthook_elf.c) ([#29])
+
+**2020-03-09:** Add support for uClibc. ([#28])
+
+**2019-11-14:** Fix potential incorrect parsing of /proc/self/maps on linux. ([#24])
+
+**2019-11-14:** Fix possible double-close issue in plthook_elf.c ([#23])
+
+**2019-09-27:** Fix resource leaks when the format of /proc/self/maps is unexpected on Linux. ([#20])
+
+**2019-09-26:** Fix SEGV when plthook_open(..., "/usr/lib/libc.dylib") on macOS. ([#19])
+
 **2019-02-17:** Support `plthook_open_by_address()` and change
 internal logic of `plthook_open()` on Android.
 
@@ -88,7 +113,7 @@ object files. It now do it only for full RELRO object files.
 Note that plthook before 2017-10-01 gets segmentation fault while
 hooking a [prelinked file](https://en.wikipedia.org/wiki/Prelink#Linux) on Linux.
 
-**2017-09-18:** Fixed for processes on [valgrind](valgrind.org/) on Linux.
+**2017-09-18:** Fixed for processes on [valgrind](https://valgrind.org) on Linux.
 
 Usage
 -----
@@ -163,7 +188,7 @@ int install_hook_function()
     }
 #ifndef WIN32
     // The address passed to the fourth argument of plthook_replace() is
-    // availabe on Windows. But not on Unixes. Get the real address by dlsym().
+    // available on Windows. But not on Unixes. Get the real address by dlsym().
     recv_func = (ssize_t (*)(int, void *, size_t, int))dlsym(RTLD_DEFAULT, "recv");
 #endif
     plthook_close(plthook);
@@ -212,9 +237,10 @@ Supported Platforms
 | Platform | source file | status |
 | -------- | ----------- | ------ |
 | Linux i386 and x86_64 | plthook_elf.c | tested using [github actions] |
-| Linux arm, aarch64, powerpc and powerpc64le | plthook_elf.c | tested on [QENU][] using [github actions] |
+| Linux arm, aarch64, powerpc and powerpc64le | plthook_elf.c | tested on [QEMU][] using [github actions] |
 | Windows 32-bit and x64 (MSVC) | plthook_win32.c | tested using [github actions] |
-| macOS | plthook_osx.c | tested using [github actions] |
+| macOS (intel) (*4) | plthook_osx.c | tested using [github actions] |
+| macOS (arm) | plthook_osx.c | tested using [github actions] |
 | Windows 32-bit and x64 (Mingw32 and Cygwin) | plthook_win32.c | perhaps(*2) |
 | Solaris x86_64 | plthook_elf.c | perhaps(*1) |
 | FreeBSD i386 and x86_64 except i386 program on x86_64 OS | plthook_elf.c | perhaps(*1) |
@@ -223,11 +249,20 @@ Supported Platforms
 *1 Tested on a local VM before.  
 *2 Tested on travis-ci.org before.  
 *3 Contributed by [Daniel Deptford][].  
+*4 macOS 10.14 Mojave support was dropped on 2022-09-19.  
 
 [QEMU]: http://www.qemu.org/
 [Daniel Deptford]: https://github.com/redmercury
 [JC Liang]: https://github.com/tntljc
 [#10]: https://github.com/kubo/plthook/pull/10
+[#19]: https://github.com/kubo/plthook/issues/19
+[#20]: https://github.com/kubo/plthook/issues/20
+[#23]: https://github.com/kubo/plthook/pull/23
+[#24]: https://github.com/kubo/plthook/issues/24
+[#28]: https://github.com/kubo/plthook/pull/28
+[#29]: https://github.com/kubo/plthook/issues/29
+[#45]: https://github.com/kubo/plthook/pull/45
+[#48]: https://github.com/kubo/plthook/issues/48
 [github actions]: https://github.com/kubo/plthook/actions/workflows/run-tests.yml
 
 License

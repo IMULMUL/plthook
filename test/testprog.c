@@ -90,7 +90,8 @@ static void reset_result(void)
 
 static void set_result(hooked_val_t *hv, const char *str, double result)
 {
-    strncpy(hv->str, str, sizeof(hv->str));
+    strncpy(hv->str, str, sizeof(hv->str) - 1);
+    hv->str[sizeof(hv->str) - 1] = '\0';
     hv->result = result;
 }
 
@@ -311,7 +312,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    /* Resolve the function addreses by lazy binding. */
+    /* Resolve the function addresses by lazy binding. */
     strtod_cdecl("3.7", NULL);
 #if defined _WIN32 || defined __CYGWIN__
     strtod_stdcall("3.7", NULL);
